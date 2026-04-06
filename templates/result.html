@@ -1,43 +1,407 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Prediction Result</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Gambarino&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink:   #1e1e1e;
+            --peach: #ffd9cb;
+            --mint:  #e1fdce;
+            --cream: #f8f5f3;
+        }
+
+        body {
+            font-family: 'Gambarino', Georgia, serif;
+            background: var(--cream);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Nav ── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 48px;
+            border-bottom: 1px solid rgba(30,30,30,0.1);
+            background: var(--cream);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15px; letter-spacing: 0.03em;
+        }
+        .nav-dot { width: 9px; height: 9px; background: var(--ink); border-radius: 50%; }
+        .nav-back {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 14px;
+            color: var(--ink);
+            text-decoration: none;
+            opacity: 0.5;
+            border: 1px solid rgba(30,30,30,0.15);
+            border-radius: 8px;
+            padding: 7px 16px;
+            transition: opacity 0.2s;
+        }
+        .nav-back:hover { opacity: 0.85; }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            bottom: 32px;
+            right: 36px;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.1;
+            writing-mode: vertical-rl;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
+
+        /* ── Main layout ── */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+        }
+
+        /* ── Left: result ── */
+        .left-pane {
+            padding: 64px 56px;
+            border-right: 1px solid rgba(30,30,30,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 44px;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            font-size: 12px;
+            opacity: 0.35;
+            display: flex; align-items: center; gap: 8px;
+            letter-spacing: 0.04em;
+        }
+        .breadcrumb span { opacity: 1; color: var(--ink); }
+
+        /* Result hero */
+        .result-eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 16px;
+        }
+
+        .result-label {
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.35;
+            margin-bottom: 10px;
+        }
+        .result-value {
+            font-size: clamp(52px, 6.5vw, 90px);
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            line-height: 1.0;
+            color: var(--ink);
+        }
+        .result-value em { font-style: italic; opacity: 0.45; }
+
+        /* Confidence */
+        .confidence-block {
+            background: var(--peach);
+            border-radius: 16px;
+            padding: 28px 32px;
+        }
+        .conf-row {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 14px;
+        }
+        .conf-lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.4;
+        }
+        .conf-val {
+            font-size: 40px;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        .conf-track {
+            height: 6px;
+            background: rgba(30,30,30,0.12);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .conf-fill {
+            height: 100%;
+            background: var(--ink);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Meta row */
+        .meta-row {
+            display: flex; gap: 0;
+        }
+        .meta-item {
+            flex: 1;
+            padding: 20px 0;
+            border-top: 1px solid rgba(30,30,30,0.1);
+        }
+        .meta-item + .meta-item {
+            padding-left: 28px;
+            border-left: 1px solid rgba(30,30,30,0.1);
+            margin-left: 28px;
+        }
+        .meta-val { font-size: 16px; letter-spacing: -0.01em; }
+        .meta-lbl { font-size: 11px; opacity: 0.4; margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+        /* Actions */
+        .actions { display: flex; gap: 12px; }
+        .btn-primary {
+            flex: 1;
+            padding: 15px 20px;
+            background: var(--ink);
+            color: var(--cream);
+            border: none; border-radius: 10px;
+            font-family: 'Gambarino', Georgia, serif;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: opacity 0.2s, transform 0.15s;
+            letter-spacing: 0.01em;
+        }
+        .btn-primary:hover { opacity: 0.82; transform: translateY(-1px); }
+        .btn-secondary {
+            padding: 15px 20px;
+            background: transparent;
+            border: 1px solid rgba(30,30,30,0.18);
+            border-radius: 10px;
+            font-family: 'Gambarino', Georgia, serif;
+            font-size: 16px;
+            color: var(--ink);
+            cursor: pointer;
+            text-decoration: none;
+            display: flex; align-items: center; gap: 8px;
+            transition: border-color 0.2s, opacity 0.2s;
+            letter-spacing: 0.01em;
+        }
+        .btn-secondary:hover { border-color: rgba(30,30,30,0.45); }
+
+        /* Disclaimer */
+        .disclaimer {
+            font-size: 12px;
+            opacity: 0.4;
+            line-height: 1.65;
+            padding-top: 20px;
+            border-top: 1px solid rgba(30,30,30,0.08);
+        }
+
+        /* ── Right: X-ray image ── */
+        .right-pane {
+            padding: 64px 44px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .xray-block-label {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 16px;
+        }
+
+        .xray-card {
+            background: var(--mint);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(30,30,30,0.08);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .xray-header {
+            padding: 14px 20px;
+            font-size: 13px;
+            opacity: 0.5;
+            border-bottom: 1px solid rgba(30,30,30,0.08);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .xray-badge {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            background: rgba(30,30,30,0.08);
+            padding: 3px 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .xray-img-area {
+            flex: 1;
+            background: rgba(30,30,30,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            min-height: 280px;
+        }
+        .xray-img-area img {
+            max-height: 320px;
+            max-width: 100%;
+            border-radius: 10px;
+            display: block;
+            filter: brightness(0.95) contrast(1.05);
+        }
+        .xray-footer {
+            padding: 12px 20px;
+            font-size: 12px;
+            opacity: 0.38;
+            text-align: center;
+            border-top: 1px solid rgba(30,30,30,0.08);
+        }
+
+        /* Footer */
+        footer {
+            padding: 22px 48px;
+            border-top: 1px solid rgba(30,30,30,0.08);
+            font-size: 12px;
+            opacity: 0.3;
+            display: flex; justify-content: space-between;
+        }
+
+        /* Animation */
+        .fadein { animation: fi 0.5s ease both; }
+        .fadein-2 { animation: fi 0.5s 0.1s ease both; }
+        .fadein-3 { animation: fi 0.5s 0.2s ease both; }
+        @keyframes fi { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+        @media (max-width: 900px) {
+            main { grid-template-columns: 1fr; }
+            .left-pane, .right-pane { padding: 40px 28px; border: none; }
+            nav { padding: 18px 28px; }
+            footer { padding: 18px 28px; flex-direction: column; gap: 4px; }
+            .actions { flex-direction: column; }
+        }
+    </style>
 </head>
+<body>
 
-<body style="background-color: #242424;">
+    <!-- Nav -->
+    <nav>
+        <div class="nav-brand">
+            <span class="nav-dot"></span>
+            <span>PulmoVision</span>
+        </div>
+        <a href="/dashboard" class="nav-back">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Dashboard
+        </a>
+    </nav>
 
-    <hr style="margin-top: 0px; opacity: 1;" color="#2a9d8f" size="8" width="100%"/>
+    <main>
+        <!-- Left: result details -->
+        <div class="left-pane">
 
-    <div class="container text-center mt-5">
-
-        <h2 style="color: #2a9d8f;">Prediction Result</h2>
-
-        <div class="card p-4 mt-4 mx-auto"
-             style="width: 450px; background-color: #1f1f1f; border-radius: 15px;">
-
-            <h4 style="color: #fff;">
-                Diagnosis: {{ prediction }}
-            </h4>
-
-            <p style="color: #ccc;">
-                Confidence: {{ confidence }}%
-            </p>
-
-            <div class="mt-3">
-                <img src="{{ imagePath }}"
-                     class="img-fluid rounded"
-                     style="max-width: 300px;">
+            <div class="breadcrumb fadein">
+                Dashboard
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                <span>Prediction Result</span>
             </div>
 
-            <a href="/dashboard" class="btn mt-4"
-               style="background-color: #2a9d8f; color: white;">
-                Analyze Another Image
-            </a>
+            <!-- Diagnosis -->
+            <div class="fadein">
+                <div class="result-eyebrow">Analysis Complete</div>
+                <div class="result-label">Diagnosis</div>
+                <div class="result-value">{{ prediction }}</div>
+            </div>
+
+            <!-- Confidence -->
+            <div class="confidence-block fadein-2">
+                <div class="conf-row">
+                    <div class="conf-lbl">Confidence</div>
+                    <div class="conf-val">{{ confidence }}%</div>
+                </div>
+                <div class="conf-track">
+                    <div class="conf-fill" id="confFill"></div>
+                </div>
+            </div>
+
+            <!-- Meta -->
+            <div class="meta-row fadein-2">
+                <div class="meta-item">
+                    <div class="meta-val">CNN Classifier</div>
+                    <div class="meta-lbl">Model</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-val">Binary</div>
+                    <div class="meta-lbl">Type</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-val" id="timeNow">—</div>
+                    <div class="meta-lbl">Time</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions fadein-3">
+                <a href="/dashboard" class="btn-primary">Analyze Another Image</a>
+                <button onclick="window.print()" class="btn-secondary">Print</button>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer fadein-3">
+                This AI-generated result is a supplemental tool only. It does not constitute a medical diagnosis. Always consult a qualified radiologist before making clinical decisions.
+            </div>
 
         </div>
 
-    </div>
+        <!-- Right: X-ray image -->
+        <div class="right-pane fadein-2">
+            <div class="xray-block-label">Submitted X-Ray</div>
+            <div class="xray-card">
+                <div class="xray-header">
+                    <span>Patient Radiograph</span>
+                    <span class="xray-badge">Input Scan</span>
+                </div>
+                <div class="xray-img-area">
+                    <img src="{{ imagePath }}" alt="Submitted chest X-ray">
+                </div>
+                <div class="xray-footer">{{ prediction }}</div>
+            </div>
+        </div>
+    </main>
 
+    <footer>
+        <span>PulmoVision · Pneumonia Detection using Deep Learning</span>
+        <span>Hospital Use Only</span>
+    </footer>
+
+    <div class="watermark">PulmoVision</div>
+
+    <script>
+        // Animate confidence bar
+        const fill = document.getElementById('confFill');
+        const conf = parseFloat("{{ confidence }}") || 0;
+        setTimeout(() => { fill.style.width = conf + '%'; }, 200);
+
+        // Timestamp
+        document.getElementById('timeNow').textContent =
+            new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    </script>
 </body>
 </html>

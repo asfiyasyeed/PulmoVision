@@ -1,133 +1,476 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Pneumonia Detector</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Gambarino&display=swap" rel="stylesheet">
     <style>
-        /* Glowing animated heading */
-        .animated-heading {
-            animation: glow 1.5s ease-in-out infinite alternate;
-            text-align: center;
-        }
-        @keyframes glow {
-            from { text-shadow: 0 0 5px #2a9d8f; }
-            to { text-shadow: 0 0 20px #2a9d8f; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink:   #1e1e1e;
+            --peach: #ffd9cb;
+            --mint:  #e1fdce;
+            --cream: #f8f5f3;
         }
 
-        /* Optional: smooth image shadow hover */
-        .img-shadow:hover {
-            box-shadow: 0 0 25px #2a9d8f;
-            transition: 0.3s;
+        body {
+            font-family: 'Gambarino', Georgia, serif;
+            background: var(--cream);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Nav ── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 48px;
+            border-bottom: 1px solid rgba(30,30,30,0.1);
+            background: var(--cream);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15px; letter-spacing: 0.03em;
+        }
+        .nav-dot {
+            width: 9px; height: 9px;
+            background: var(--ink); border-radius: 50%;
+        }
+        .nav-pill {
+            background: var(--mint);
+            border-radius: 100px;
+            padding: 5px 14px;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            opacity: 0.8;
+        }
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            bottom: 32px;
+            right: 36px;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.1;
+            writing-mode: vertical-rl;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
+
+        /* ── Page layout ── */
+        .page {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 0;
+        }
+
+        /* ── Left: hero + upload ── */
+        .left-pane {
+            padding: 64px 56px;
+            border-right: 1px solid rgba(30,30,30,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 48px;
+        }
+
+        .page-hero {}
+        .eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 18px;
+        }
+        .page-title {
+            font-size: clamp(40px, 4.5vw, 68px);
+            font-weight: 400;
+            letter-spacing: -0.025em;
+            line-height: 1.07;
+        }
+        .page-title em { font-style: italic; opacity: 0.45; }
+        .page-desc {
+            margin-top: 18px;
+            font-size: 16px;
+            line-height: 1.65;
+            opacity: 0.55;
+            max-width: 480px;
+        }
+
+        /* Upload form */
+        .upload-section {}
+        .section-label {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 18px;
+        }
+
+        /* Dropzone */
+        .dropzone {
+            background: var(--peach);
+            border: 1.5px dashed rgba(30,30,30,0.2);
+            border-radius: 16px;
+            padding: 48px 32px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .dropzone:hover, .dropzone.drag-over {
+            background: #fecdb8;
+            border-color: rgba(30,30,30,0.35);
+        }
+        .dropzone input[type="file"] {
+            position: absolute; inset: 0;
+            opacity: 0; cursor: pointer;
+            width: 100%; height: 100%;
+        }
+        .dz-icon {
+            width: 52px; height: 52px;
+            border: 1.5px solid rgba(30,30,30,0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            transition: transform 0.2s;
+        }
+        .dropzone:hover .dz-icon { transform: scale(1.08); }
+        .dz-title { font-size: 18px; margin-bottom: 6px; }
+        .dz-sub { font-size: 13px; opacity: 0.45; margin-bottom: 16px; }
+        .dz-formats {
+            display: inline-block;
+            background: rgba(30,30,30,0.07);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            opacity: 0.6;
+        }
+
+        /* Preview */
+        .preview-wrap {
+            display: none;
+            margin-top: 20px;
+            background: var(--peach);
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(30,30,30,0.1);
+        }
+        .preview-wrap.visible { display: block; }
+        .preview-bar {
+            padding: 10px 18px;
+            font-size: 12px;
+            opacity: 0.5;
+            display: flex; justify-content: space-between;
+            border-bottom: 1px solid rgba(30,30,30,0.08);
+        }
+        .preview-img-area {
+            background: rgba(30,30,30,0.04);
+            padding: 20px;
+            display: flex; justify-content: center;
+        }
+        #previewImg {
+            max-height: 240px;
+            max-width: 100%;
+            border-radius: 8px;
+            display: block;
+        }
+        .file-bar {
+            padding: 10px 18px;
+            font-size: 12px;
+            opacity: 0.45;
+            border-top: 1px solid rgba(30,30,30,0.08);
+        }
+
+        /* Submit */
+        .btn-analyze {
+            width: 100%;
+            margin-top: 18px;
+            padding: 16px;
+            background: var(--ink);
+            color: var(--cream);
+            border: none;
+            border-radius: 12px;
+            font-family: 'Gambarino', Georgia, serif;
+            font-size: 17px;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-analyze:hover { opacity: 0.82; transform: translateY(-1px); }
+        .btn-analyze:disabled { opacity: 0.4; pointer-events: none; }
+
+        /* Loading */
+        .loading-wrap {
+            display: none;
+            margin-top: 18px;
+        }
+        .loading-wrap.visible { display: block; }
+        .loading-track {
+            height: 2px;
+            background: rgba(30,30,30,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .loading-bar {
+            height: 100%;
+            background: var(--ink);
+            border-radius: 2px;
+            animation: lbar 1.8s ease-in-out infinite;
+        }
+        @keyframes lbar { 0%{width:0;margin-left:0} 50%{width:55%;margin-left:20%} 100%{width:0;margin-left:100%} }
+        .loading-txt { font-size: 13px; opacity: 0.4; }
+
+        /* ── Right: info pane ── */
+        .right-pane {
+            padding: 64px 44px;
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+        }
+
+        /* Sample image */
+        .sample-block {}
+        .block-label {
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 16px;
+        }
+        .sample-img-wrap {
+            background: var(--mint);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(30,30,30,0.08);
+        }
+        .sample-img-inner {
+            background: rgba(30,30,30,0.04);
+            padding: 20px;
+            display: flex; justify-content: center;
+        }
+        .sample-img-inner img {
+            max-height: 200px;
+            border-radius: 8px;
+            filter: brightness(0.96) contrast(1.05);
+        }
+        .sample-caption {
+            padding: 12px 18px;
+            font-size: 12px;
+            opacity: 0.4;
+            text-align: center;
+            border-top: 1px solid rgba(30,30,30,0.08);
+        }
+
+        /* Steps */
+        .steps-block {}
+        .step-list { display: flex; flex-direction: column; gap: 18px; }
+        .step {
+            display: flex; gap: 16px; align-items: flex-start;
+        }
+        .step-num {
+            width: 28px; height: 28px;
+            background: var(--peach);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .step-body { font-size: 14px; line-height: 1.6; opacity: 0.65; }
+        .step-body strong { opacity: 1; color: var(--ink); }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: rgba(30,30,30,0.08);
+        }
+
+        /* Footer */
+        footer {
+            padding: 22px 48px;
+            border-top: 1px solid rgba(30,30,30,0.08);
+            font-size: 12px;
+            opacity: 0.35;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 900px) {
+            .page { grid-template-columns: 1fr; }
+            .left-pane, .right-pane { padding: 40px 28px; border: none; }
+            nav { padding: 18px 28px; }
+            footer { padding: 18px 28px; flex-direction: column; gap: 4px; }
         }
     </style>
 </head>
+<body>
 
-<body style="background-color: #242424;">
+    <!-- Nav -->
+    <nav>
+        <div class="nav-brand">
+            <span class="nav-dot"></span>
+            <span>PulmoVision</span>
+        </div>
+        <div class="nav-pill">Deep Learning</div>
+    </nav>
 
-    <!-- Top accent line -->
-    <hr style="margin-top: 0px; opacity: 1;" color="#2a9d8f" size="10" width="100%"/>
+    <!-- Page grid -->
+    <div class="page">
 
-    <!-- Title -->
-    <h1 class="animated-heading" style="color: #e0e0e0; margin-top: 80px;">
-        Pneumonia <span style="color: #2a9d8f;">Detection</span> and Classification using
-        <span style="color: #2a9d8f;">Deep Learning</span>
-    </h1>
-
-    <!-- Description -->
-    <p style="color: #ccc; text-align: center; margin-top: 15px;">
-        Upload a chest X-ray image to automatically detect pneumonia using a deep learning model.
-    </p>
-
-    <!-- Sample Image -->
-    <div class="d-flex justify-content-center mt-4">
-        <img src="/static/Images/IM-0001-0001.jpeg"
-             alt="Sample Chest X-ray"
-             class="img-fluid rounded shadow img-shadow"
-             style="max-width: 350px;">
-    </div>
-
-    <p style="color: #441010; margin-top: 10px; font-weight: bold; text-align: center;">
-        Sample Chest X-ray
-    </p>
-
-    <!-- Upload Card -->
-    <div class="d-flex justify-content-center mt-5">
-        <div class="card p-4" style="width: 420px; background-color: #1f1f1f; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
-
-            <form class="text-center" method="post" action="/predict" enctype="multipart/form-data">
-                <h4 style="color: #2a9d8f; margin-bottom: 20px;">
-                    Upload Chest X-ray
-                </h4>
-
-                <!-- File input -->
-                <input
-                    class="form-control"
-                    style="background-color: white;"
-                    type="file"
-                    name="imagefile"
-                    id="imagefile"
-                    required>
-
-                <!-- Preview of selected image -->
-                <div class="d-flex justify-content-center mt-3">
-                    <img id="preview" src="" alt="" style="max-width: 250px; display: none; border-radius: 10px;">
-                </div>
-
-                <!-- Submit button -->
-                <input
-                    class="btn btn-primary mt-4"
-                    style="background-color: #2a9d8f; border: none; width: 100%; transition: 0.3s;"
-                    type="submit"
-                    value="Analyze X-ray"
-                    onmouseover="this.style.backgroundColor='#3cb3ac'; this.style.transform='scale(1.05)';"
-                    onmouseout="this.style.backgroundColor='#2a9d8f'; this.style.transform='scale(1)';">
-            </form>
-
-            <!-- Loading spinner -->
-            <div id="loading" class="text-center mt-3" style="display: none;">
-                <div class="spinner-border text-light" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p style="color: #ccc;">Analyzing Image...</p>
+        <!-- Left: hero + upload -->
+        <div class="left-pane">
+            <div class="page-hero">
+                <div class="eyebrow">Diagnostic Tool</div>
+                <h1 class="page-title">
+                    Pneumonia<br>
+                    <em>Detection</em> and<br>
+                    Classification<br>
+                    using <em>Deep Learning</em>
+                </h1>
+                <p class="page-desc">
+                    Upload a chest X-ray image to automatically detect pneumonia using a deep learning model.
+                </p>
             </div>
 
+            <div class="upload-section">
+                <div class="section-label">Upload Chest X-ray</div>
+
+                <form method="post" action="/predict" enctype="multipart/form-data" id="uploadForm">
+                    <!-- Patient ID -->
+                    <div style="margin-bottom: 18px;">
+                        <div class="section-label" style="margin-bottom: 8px;">Patient ID <span style="opacity:0.4; font-size:11px;">(optional)</span></div>
+                        <input
+                            type="text"
+                            name="patient_id"
+                            placeholder="e.g. PT-2024-001"
+                            style="width:100%; background:var(--peach); border:1px solid transparent; border-radius:10px; padding:12px 18px; font-family:'Gambarino',Georgia,serif; font-size:15px; color:var(--ink); outline:none;"
+                        >
+                    </div>
+
+                    <!-- Dropzone -->
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" name="imagefile" id="imageFile" accept="image/*" required>
+                        <div class="dz-icon">
+                            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                                <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                            </svg>
+                        </div>
+                        <div class="dz-title">Drop your X-ray here</div>
+                        <div class="dz-sub">or click to browse files</div>
+                        <span class="dz-formats">JPG · PNG · JPEG</span>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="preview-wrap" id="previewWrap">
+                        <div class="preview-bar">
+                            <span>Selected image</span>
+                            <span>Ready to analyze</span>
+                        </div>
+                        <div class="preview-img-area">
+                            <img id="previewImg" src="" alt="Preview">
+                        </div>
+                        <div class="file-bar" id="fileName">No file selected</div>
+                    </div>
+
+                    <button type="submit" class="btn-analyze" id="analyzeBtn">Analyze X-ray</button>
+                </form>
+
+                <!-- Loading -->
+                <div class="loading-wrap" id="loadingWrap">
+                    <div class="loading-track"><div class="loading-bar"></div></div>
+                    <div class="loading-txt">Analyzing Image...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: info -->
+        <div class="right-pane">
+
+            <!-- Sample image -->
+            <div class="sample-block">
+                <div class="block-label">Sample Chest X-ray</div>
+                <div class="sample-img-wrap">
+                    <div class="sample-img-inner">
+                        <img src="/static/Images/IM-0001-0001.jpeg" alt="Sample Chest X-ray">
+                    </div>
+                    <div class="sample-caption">Sample Chest X-ray — for reference</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Steps -->
+            <div class="steps-block">
+                <div class="block-label">How it works</div>
+                <div class="step-list">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-body"><strong>Upload</strong> a chest X-ray image from your system</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-body"><strong>Preprocessing</strong> — image is normalized automatically</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-body"><strong>Inference</strong> — the CNN model analyzes pulmonary patterns</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-body"><strong>Result</strong> — diagnosis with confidence score is returned</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="text-center mt-5 mb-3" style="color: #777;">
-        • Pneumonia Detection using Deep Learning
+    <footer>
+        <span>PulmoVision · Pneumonia Detection using Deep Learning</span>
+        <span>Hospital Use Only</span>
     </footer>
 
-    <!-- Optional Flask output (uncomment when Flask is running) -->
-    <!--
-    {% if prediction %}
-        <h2 class="text-center" style="color: #fff;">
-            Prediction Result: {{ prediction }}
-        </h2>
-    {% endif %}
+    <div class="watermark">PulmoVision</div>
 
-    {% if imagePath %}
-        <div class="d-flex justify-content-center">
-            <img src="{{ imagePath }}" height="224" width="224">
-        </div>
-    {% endif %}
-    -->
-
-    <!-- Scripts -->
     <script>
-        // Image preview
-        document.getElementById('imagefile').addEventListener('change', function(event){
-            const preview = document.getElementById('preview');
-            preview.src = URL.createObjectURL(event.target.files[0]);
-            preview.style.display = 'block';
+        const fileInput = document.getElementById('imageFile');
+        const previewWrap = document.getElementById('previewWrap');
+        const previewImg = document.getElementById('previewImg');
+        const fileNameEl = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingWrap = document.getElementById('loadingWrap');
+        const dropzone = document.getElementById('dropzone');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            previewImg.src = URL.createObjectURL(file);
+            fileNameEl.textContent = file.name;
+            previewWrap.classList.add('visible');
         });
 
-        // Show loading spinner on submit
-        document.querySelector('form').addEventListener('submit', function(){
-            document.getElementById('loading').style.display = 'block';
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+        dropzone.addEventListener('drop', () => dropzone.classList.remove('drag-over'));
+
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing…';
+            loadingWrap.classList.add('visible');
         });
     </script>
-
 </body>
 </html>
